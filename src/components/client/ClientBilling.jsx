@@ -702,7 +702,7 @@ export const ClientBilling = ({ user }) => {
                 >
                   <option
                     value=""
-                    className="text-gray-900 bg-white dark:bg-akatech-card"
+                    className="text-gray-900 dark:text-gray-100 bg-white dark:bg-[#18181b]"
                   >
                     Select a project
                   </option>
@@ -712,7 +712,7 @@ export const ClientBilling = ({ user }) => {
                         <option
                           key={p.id}
                           value={p.id}
-                          className="text-gray-900 bg-white dark:bg-akatech-card"
+                          className="text-gray-900 dark:text-gray-100 bg-white dark:bg-[#18181b]"
                         >
                           {p.title || p.name}
                         </option>
@@ -725,7 +725,7 @@ export const ClientBilling = ({ user }) => {
                         <option
                           key={item.name}
                           value={item.name}
-                          className="text-gray-900 bg-white dark:bg-akatech-card"
+                          className="text-gray-900 dark:text-gray-100 bg-white dark:bg-[#18181b]"
                         >
                           {item.name}
                         </option>

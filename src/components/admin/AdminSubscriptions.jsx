@@ -300,7 +300,7 @@ export const AdminSubscriptions = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-akatech-card border border-gray-200 dark:border-white/10 rounded-lg text-sm"
+            className="px-4 py-2 bg-white dark:bg-akatech-card border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white cursor-pointer"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -541,7 +541,7 @@ export const AdminSubscriptions = () => {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, plan: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent cursor-pointer"
                 />
               </div>
               <div>
@@ -553,7 +553,7 @@ export const AdminSubscriptions = () => {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, status: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent cursor-pointer"
                 >
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
@@ -575,7 +575,7 @@ export const AdminSubscriptions = () => {
                         startDate: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent cursor-pointer"
                   />
                 </div>
                 <div>
@@ -591,7 +591,7 @@ export const AdminSubscriptions = () => {
                         endDate: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent cursor-pointer"
                   />
                 </div>
               </div>
@@ -605,7 +605,7 @@ export const AdminSubscriptions = () => {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, amount: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black/20 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold focus:border-transparent cursor-pointer"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">

@@ -40,8 +40,10 @@ export const useTheme = () => {
 
       if (isDark) {
         root.classList.add("dark");
+        root.style.colorScheme = "dark";
       } else {
         root.classList.remove("dark");
+        root.style.colorScheme = "light";
       }
     };
 

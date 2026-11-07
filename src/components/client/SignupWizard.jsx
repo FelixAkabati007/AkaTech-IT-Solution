@@ -275,7 +275,7 @@ const StepDetails = ({
               }
               if (pkg) onSelectPackage(pkg);
             }}
-            className="w-full md:w-auto bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 min-h-[48px] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-akatech-gold"
+            className="w-full md:w-auto bg-white dark:bg-akatech-card border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 min-h-[48px] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-akatech-gold cursor-pointer"
           >
             <option value="" disabled>
               Select Project

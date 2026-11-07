@@ -233,7 +233,7 @@ export const AdminProjects = () => {
         </div>
         <select
           data-testid="status-filter"
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -409,7 +409,7 @@ export const AdminProjects = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-akatech-gold focus:border-transparent outline-none transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-akatech-card text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-akatech-gold focus:border-transparent outline-none transition-all cursor-pointer"
                 />
               </div>
 
@@ -447,7 +447,7 @@ export const AdminProjects = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, status: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-akatech-gold focus:border-transparent outline-none transition-all"
+                  className="w-full px-3 py-2 bg-white dark:bg-akatech-card text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-akatech-gold focus:border-transparent outline-none transition-all cursor-pointer"
                 >
                   <option value="Pending">Pending</option>
                   <option value="In Progress">In Progress</option>

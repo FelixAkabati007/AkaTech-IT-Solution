@@ -319,7 +319,7 @@ export const ClientSupport = ({ user }) => {
                   id="ticket-subject"
                   type="text"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newTicket.subject}
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, subject: e.target.value })
@@ -337,7 +337,7 @@ export const ClientSupport = ({ user }) => {
                 </label>
                 <select
                   id="ticket-priority"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newTicket.priority}
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, priority: e.target.value })

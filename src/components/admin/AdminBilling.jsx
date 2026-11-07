@@ -572,7 +572,7 @@ export const AdminBilling = () => {
                   id="invoiceProject"
                   required={!newInvoice.projectId} // If projectId is null (Project Type Request), allow it to stay null if we don't want to force assignment yet? Actually, admins should probably assign it to a real project or keep it as is. But for now let's keep it required if we want standard behavior.
                   // However, if it came in as a request with projectId=null, we might want to let admin assign it.
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newInvoice.projectId || ""}
                   onChange={(e) => {
                     const selectedValue = e.target.value;
@@ -637,7 +637,7 @@ export const AdminBilling = () => {
                   type="number"
                   step="0.01"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newInvoice.amount}
                   onChange={(e) =>
                     setNewInvoice({ ...newInvoice, amount: e.target.value })
@@ -656,7 +656,7 @@ export const AdminBilling = () => {
                   id="invoiceDueDate"
                   type="date"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newInvoice.dueDate}
                   onChange={(e) =>
                     setNewInvoice({ ...newInvoice, dueDate: e.target.value })
@@ -674,7 +674,7 @@ export const AdminBilling = () => {
                 <select
                   id="invoiceStatus"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newInvoice.status}
                   onChange={(e) =>
                     setNewInvoice({ ...newInvoice, status: e.target.value })

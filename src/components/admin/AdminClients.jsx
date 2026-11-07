@@ -467,7 +467,7 @@ export const AdminClients = () => {
 
           {/* Filter */}
           <select
-            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
             value={roleFilter}
             onChange={(e) => {
               setRoleFilter(e.target.value);
@@ -761,7 +761,7 @@ export const AdminClients = () => {
                   type="text"
                   required
                   placeholder="e.g., Web Development Services"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={invoiceData.description}
                   onChange={(e) =>
                     setInvoiceData({
@@ -779,7 +779,7 @@ export const AdminClients = () => {
                   type="date"
                   required
                   data-testid="invoice-due-date"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={invoiceData.dueDate}
                   onChange={(e) =>
                     setInvoiceData({ ...invoiceData, dueDate: e.target.value })
@@ -932,7 +932,7 @@ export const AdminClients = () => {
                   id="userName"
                   type="text"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newUser.name}
                   onChange={(e) =>
                     setNewUser({ ...newUser, name: e.target.value })
@@ -950,7 +950,7 @@ export const AdminClients = () => {
                   id="userEmail"
                   type="email"
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newUser.email}
                   onChange={(e) =>
                     setNewUser({ ...newUser, email: e.target.value })
@@ -973,7 +973,7 @@ export const AdminClients = () => {
                     placeholder={
                       newUser.id ? "Leave blank to keep current" : ""
                     }
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                     value={newUser.password || ""}
                     onChange={(e) =>
                       setNewUser({ ...newUser, password: e.target.value })
@@ -991,7 +991,7 @@ export const AdminClients = () => {
                 </label>
                 <select
                   id="userRole"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-akatech-card text-gray-900 dark:text-white focus:ring-2 focus:ring-akatech-gold outline-none cursor-pointer"
                   value={newUser.role}
                   onChange={(e) =>
                     setNewUser({ ...newUser, role: e.target.value })

@@ -77,12 +77,58 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark,
+  .dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-white text-gray-900 transition-colors duration-300;
   }
 
   .dark body {
     @apply bg-akatech-dark text-white;
+  }
+
+  /* Universal Form Controls & Dropdown Select Legibility */
+  select,
+  input,
+  textarea {
+    color-scheme: light;
+  }
+
+  .dark select,
+  .dark input,
+  .dark textarea {
+    color-scheme: dark;
+  }
+
+  /* Native select dropdown option and optgroup styling */
+  select option,
+  select optgroup {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .dark select option,
+  .dark select optgroup {
+    background-color: #18181b !important;
+    color: #f4f4f5 !important;
+  }
+
+  select optgroup {
+    font-weight: 700;
+    color: #4b5563 !important;
+  }
+
+  .dark select optgroup {
+    font-weight: 700;
+    color: #c5a059 !important;
+    background-color: #09090b !important;
   }
 
   /* Custom Scrollbar */
