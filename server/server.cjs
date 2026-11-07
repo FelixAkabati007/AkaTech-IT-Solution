@@ -442,7 +442,11 @@ app.post("/api/signup/verify-google", async (req, res) => {
 
     // Special Admin Logic
     let role = "client";
-    if (ADMIN_EMAIL && googleUser.email === ADMIN_EMAIL) {
+    const adminEmails = (process.env.ADMIN_EMAIL || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (adminEmails.includes((googleUser.email || "").toLowerCase())) {
       role = "admin";
     }
 
