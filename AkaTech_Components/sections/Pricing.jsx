@@ -33,6 +33,11 @@ export const Pricing = ({ onSelectPlan }) => (
                 Best Value
               </div>
             )}
+            {pkg.audience && (
+              <span className="text-[11px] font-semibold text-akatech-gold uppercase tracking-wider mb-2 block">
+                {pkg.audience}
+              </span>
+            )}
             <h3 className="text-xl md:text-2xl font-serif mb-2 text-gray-900 dark:text-white transition-colors duration-500">
               {pkg.name}
             </h3>

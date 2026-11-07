@@ -1,3 +1,15 @@
+# Robots.txt for AkaTech IT Solutions
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Search Engine Crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap Index
 Sitemap: https://akatech.com/sitemap.xml

@@ -23,8 +23,15 @@ export const Services = () => (
             className="group p-6 md:p-8 border border-gray-200/80 dark:border-white/10 bg-white/85 dark:bg-akatech-dark/85 backdrop-blur-md hover:border-akatech-gold/40 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden shadow-lg dark:shadow-none rounded-xl"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gold-gradient transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-            <div className="mb-6 text-akatech-gold group-hover:text-black dark:group-hover:text-white transition-colors duration-300">
-              <service.icon size={40} strokeWidth={1} />
+            <div className="mb-6 flex items-center justify-between">
+              <div className="text-akatech-gold group-hover:text-black dark:group-hover:text-white transition-colors duration-300">
+                <service.icon size={36} strokeWidth={1.5} />
+              </div>
+              {service.target && (
+                <span className="text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded bg-akatech-gold/10 text-akatech-gold border border-akatech-gold/20">
+                  {service.target}
+                </span>
+              )}
             </div>
             <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3 group-hover:text-akatech-gold transition-colors duration-500">
               {service.title}

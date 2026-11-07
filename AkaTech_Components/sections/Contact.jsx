@@ -91,8 +91,9 @@ export const Contact = () => {
             Start Your Transformation
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-10 leading-relaxed max-w-md transition-colors duration-500">
-            Ready to elevate your digital presence? Contact our team in Ejisu or
-            reach out for remote consultation globally.
+            Ready to elevate your digital presence? We partner with Ghanaian companies,
+            business owners, online retailers, and individual professionals across Accra,
+            Kumasi, Ejisu, and nationwide.
           </p>
 
           <div className="space-y-8 border-l border-akatech-gold/30 pl-8">

@@ -48,13 +48,28 @@ export const Hero = () => {
             Digital <br />
             <span className="gold-text-clip">Excellence</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg mb-10 max-w-lg font-light leading-relaxed border-l-2 border-akatech-gold/30 pl-6 transition-colors duration-300">
+          <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg mb-6 max-w-lg font-light leading-relaxed border-l-2 border-akatech-gold/30 pl-6 transition-colors duration-300">
             <strong className="font-bold text-gray-900 dark:text-white">
               AkaTech IT Solutions
             </strong>{" "}
-            engineers premium software architectures, blending elegance with
-            high-performance computing for visionary businesses.
+            engineers custom web platforms, enterprise software, e-commerce stores,
+            and digital payment systems for Ghanaian companies, business owners,
+            online merchants, and individual professionals.
           </p>
+          <div className="flex flex-wrap gap-2 mb-8 max-w-lg">
+            <span className="px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-akatech-gold/10 text-akatech-gold border border-akatech-gold/30 rounded-full">
+              Ghanaian Companies
+            </span>
+            <span className="px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-akatech-gold/10 text-akatech-gold border border-akatech-gold/30 rounded-full">
+              Business Owners
+            </span>
+            <span className="px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-akatech-gold/10 text-akatech-gold border border-akatech-gold/30 rounded-full">
+              Online Businesses
+            </span>
+            <span className="px-3 py-1 text-[11px] font-semibold tracking-wider uppercase bg-akatech-gold/10 text-akatech-gold border border-akatech-gold/30 rounded-full">
+              Individual Portfolios
+            </span>
+          </div>
           <div className="flex flex-wrap gap-4">
             <Button
               variant="primary"

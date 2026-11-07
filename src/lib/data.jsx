@@ -3,23 +3,39 @@ import { Icons } from "@components/ui/Icons";
 export const SERVICES = [
   {
     icon: Icons.Code,
-    title: "Web Development",
-    desc: "Tailored React & Next.js solutions that outperform template sites. We build fast, responsive, and SEO-optimized web applications.",
+    title: "Web & Custom App Development",
+    target: "Ghanaian Companies & SMEs",
+    desc: "Bespoke React & Next.js platforms built for speed, SEO, and local conversion. We engineer high-performing corporate portals and customer-facing websites.",
   },
   {
     icon: Icons.Server,
-    title: "System Architecture",
-    desc: "Robust backend infrastructure designed for scalability and security. We engineer systems that grow with your business needs.",
+    title: "Enterprise Systems & Cloud",
+    target: "Corporate Ghanaian Companies",
+    desc: "Scalable backend systems, cloud migration, and secure databases engineered for Ghanaian firms needing enterprise reliability and multi-branch synchronization.",
   },
   {
     icon: Icons.ShoppingBag,
-    title: "POS Systems",
-    desc: "Integrated Point of Sale systems for retail efficiency. Streamline your inventory, sales, and reporting in one unified platform.",
+    title: "E-Commerce & MoMo Payments",
+    target: "Online Businesses & Retailers",
+    desc: "High-speed digital storefronts with automated checkout powered by MTN Mobile Money, Telecel Cash, AT Money, and Paystack cards for online merchants.",
+  },
+  {
+    icon: Icons.CreditCard,
+    title: "Smart POS & Retail Automation",
+    target: "Ghanaian Business Owners",
+    desc: "Modern Point of Sale, automated billing, and real-time inventory management for Ghanaian supermarkets, restaurants, boutiques, and retail shops.",
+  },
+  {
+    icon: Icons.User,
+    title: "Personal Branding & Portfolios",
+    target: "Individual Users & Professionals",
+    desc: "Sleek, bespoke portfolio websites, interactive CVs, and personal branding domains for Ghanaian consultants, creatives, executives, and freelancers.",
   },
   {
     icon: Icons.Palette,
-    title: "Graphic Design",
-    desc: "Brand identity, logos, and premium visual assets. We craft distinct visual languages that elevate your market presence.",
+    title: "Brand Identity & UI/UX Design",
+    target: "Startups & Emerging Businesses",
+    desc: "Distinct logo design, visual identity systems, and conversion-focused UI/UX design that builds trust and prestige in the Ghanaian and African market.",
   },
 ];
 
