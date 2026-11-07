@@ -16,17 +16,14 @@ vi.mock("@components/ui/ToastProvider", () => ({
 
 // Mock Icons
 vi.mock("@components/ui/Icons", () => ({
-  Icons: {
-    Search: () => <div data-testid="icon-search" />,
-    Plus: () => <div data-testid="icon-plus" />,
-    DollarSign: () => <div data-testid="icon-dollar-sign" />,
-    Clock: () => <div data-testid="icon-clock" />,
-    Users: () => <div data-testid="icon-users" />,
-    FileText: () => <div data-testid="icon-file-text" />,
-    PenTool: () => <div data-testid="icon-pen-tool" />,
-    Trash: () => <div data-testid="icon-trash" />,
-    Loader: () => <div data-testid="icon-loader" />,
-  },
+  Icons: new Proxy(
+    {},
+    {
+      get: (target, prop) => (props) => (
+        <div data-testid={`icon-${String(prop).toLowerCase()}`} {...props} />
+      ),
+    }
+  ),
 }));
 
 // Mock socket.io-client

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icons } from "@components/ui/Icons";
 import { localDataService } from "@lib/localData";
+import { useToast } from "@components/ui/ToastProvider";
 import ProjectEmptyState from "./ProjectEmptyState";
 
 export const ClientProjects = ({ user }) => {
+  const { addToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,26 +17,55 @@ export const ClientProjects = ({ user }) => {
   const fetchProjects = async () => {
     if (!user?.email) return;
     try {
-      // Use mock data directly since backend is likely not available in this env
-      // const res = await fetch(
-      //   `/api/client/projects?email=${encodeURIComponent(
-      //     user.email
-      //   )}`
-      // );
+      const res = await fetch("/api/client/projects", {
+        credentials: "include",
+      });
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!res.ok) {
+        throw new Error(`Failed to fetch projects (${res.status})`);
+      }
 
-      // Mock Data Integration
-      // In a real scenario, we would check res.ok and await res.json()
-      // But for stability in this preview, we default to localDataService
-      // Filter by user.id to show only this client's projects
-      const projects = localDataService.getProjects(user.id);
-      setProjects(projects);
+      const projectData = await res.json();
+      const normalizedProjects = projectData.map((project) => ({
+        id: project.id,
+        title: project.name || project.plan || "Untitled Project",
+        description: project.notes || "No project details available yet.",
+        status: project.status || "pending",
+        currentPhase:
+          project.status === "in-progress"
+            ? "Development"
+            : project.status === "completed"
+              ? "Completed"
+              : "Review",
+        phases: [
+          {
+            name: "Request Received",
+            status: "Completed",
+            date: new Date(
+              project.createdAt || Date.now(),
+            ).toLocaleDateString(),
+          },
+          {
+            name: "Review",
+            status: project.status === "pending" ? "In Progress" : "Completed",
+            date: "-",
+          },
+          {
+            name: "Delivery",
+            status: project.status === "completed" ? "Completed" : "Pending",
+            date: "-",
+          },
+        ],
+        files: project.files || [],
+      }));
+      setProjects(normalizedProjects);
     } catch (err) {
       console.error("Failed to fetch projects", err);
-      // Fallback
-      setProjects([]);
+      setProjects(localDataService.getProjects(user.id));
+      addToast(
+        "Unable to reach live project data. Showing local fallback.",
+        "warning",
+      );
     }
   };
 
@@ -47,7 +78,7 @@ export const ClientProjects = ({ user }) => {
   const filteredProjects = projects.filter(
     (project) =>
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase())
+      project.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleFileUpload = (e) => {
@@ -199,8 +230,8 @@ export const ClientProjects = ({ user }) => {
                               phase.status === "Completed"
                                 ? "bg-green-500"
                                 : phase.status === "In Progress"
-                                ? "bg-akatech-gold"
-                                : "bg-gray-300 dark:bg-gray-700"
+                                  ? "bg-akatech-gold"
+                                  : "bg-gray-300 dark:bg-gray-700"
                             }`}
                           ></div>
                           <h4 className="text-sm font-bold text-gray-900 dark:text-white">

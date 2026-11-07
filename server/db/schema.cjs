@@ -19,6 +19,8 @@ const users = pgTable(
     avatarUrl: text("avatar_url"),
     googleId: text("google_id"),
     accountType: text("account_type"),
+    phone: text("phone"),
+    company: text("company"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -34,7 +36,7 @@ const projects = pgTable(
   "projects",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").references(() => users.id),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     name: text("name"), // Client/Project name
     email: text("email"), // Legacy or Contact Email
     company: text("company"),
@@ -76,7 +78,7 @@ const notifications = pgTable(
   "notifications",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").references(() => users.id), // Nullable for system-wide
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }), // Nullable for system-wide
     title: text("title"),
     message: text("message"),
     read: boolean("read").default(false),
@@ -132,7 +134,7 @@ const tickets = pgTable(
   "tickets",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").references(() => users.id),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     userEmail: text("user_email"),
     userName: text("user_name"),
     subject: text("subject"),
@@ -155,7 +157,7 @@ const subscriptions = pgTable(
   "subscriptions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").references(() => users.id),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     userName: text("user_name"),
     userEmail: text("user_email"),
     plan: text("plan"),
@@ -180,8 +182,8 @@ const invoices = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     referenceNumber: text("reference_number").unique().notNull(),
-    userId: uuid("user_id").references(() => users.id),
-    projectId: uuid("project_id").references(() => projects.id), // Optional if not linked to project yet
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     amount: text("amount"), // Using text to avoid precision issues or for flexibility
     status: text("status").default("requested"), // requested, draft, sent, paid, overdue, cancelled
     dueDate: timestamp("due_date"),

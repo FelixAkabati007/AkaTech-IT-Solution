@@ -125,6 +125,22 @@ const getProjectsByEmail = async (email) => {
   return await db.select().from(projects).where(eq(projects.email, email));
 };
 
+const getProjectsForUser = async ({ userId, email }) => {
+  if (!db) return [];
+
+  const conditions = [];
+  if (userId) conditions.push(eq(projects.userId, userId));
+  if (email) conditions.push(eq(projects.email, email));
+
+  if (conditions.length === 0) return [];
+
+  return await db
+    .select()
+    .from(projects)
+    .where(or(...conditions))
+    .orderBy(desc(projects.createdAt));
+};
+
 // Messages
 const createMessage = async (messageData) => {
   if (!db) return null;
@@ -256,6 +272,7 @@ module.exports = {
   createProject,
   getAllProjects,
   getProjectsByEmail,
+  getProjectsForUser,
   updateProject: async (id, data) => {
     if (!db) return null;
     const result = await db
@@ -371,6 +388,22 @@ module.exports = {
       .select()
       .from(tickets)
       .where(eq(tickets.userEmail, email))
+      .orderBy(desc(tickets.createdAt));
+  },
+
+  getTicketsForUser: async ({ userId, email }) => {
+    if (!db) return [];
+
+    const conditions = [];
+    if (userId) conditions.push(eq(tickets.userId, userId));
+    if (email) conditions.push(eq(tickets.userEmail, email));
+
+    if (conditions.length === 0) return [];
+
+    return await db
+      .select()
+      .from(tickets)
+      .where(or(...conditions))
       .orderBy(desc(tickets.createdAt));
   },
 

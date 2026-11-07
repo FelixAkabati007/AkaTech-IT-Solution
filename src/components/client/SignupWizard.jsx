@@ -642,6 +642,7 @@ export const SignupWizard = ({ initialPlan, onBack, onComplete }) => {
       const res = await fetch(`${API_URL}/signup/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email,
           finalData: { ...formData, selectedPackage: selectedPackage?.name },
@@ -650,9 +651,6 @@ export const SignupWizard = ({ initialPlan, onBack, onComplete }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Signup failed");
-
-      // Save token
-      localStorage.setItem("token", data.token);
 
       if (onComplete) onComplete(data.user);
     } catch (err) {

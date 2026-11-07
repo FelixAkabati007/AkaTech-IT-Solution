@@ -16,13 +16,10 @@ export const ClientDashboard = ({ user, setActiveTab }) => {
     const fetchData = async () => {
       try {
         const [projRes, tickRes] = await Promise.all([
-          fetch(
-            `/api/client/projects?email=${encodeURIComponent(user.email)}`,
-            {
-              credentials: "include",
-            }
-          ),
-          fetch(`/api/client/tickets?email=${encodeURIComponent(user.email)}`, {
+          fetch("/api/client/projects", {
+            credentials: "include",
+          }),
+          fetch("/api/client/tickets", {
             credentials: "include",
           }),
         ]);
@@ -42,7 +39,7 @@ export const ClientDashboard = ({ user, setActiveTab }) => {
               {
                 name: "Request Received",
                 status: "Completed",
-                date: new Date(p.timestamp).toLocaleDateString(),
+                date: new Date(p.createdAt || Date.now()).toLocaleDateString(),
               },
               {
                 name: "Review",
@@ -57,7 +54,7 @@ export const ClientDashboard = ({ user, setActiveTab }) => {
             ],
           }));
           activeProjectsCount = data.filter(
-            (p) => p.status !== "completed" && p.status !== "rejected"
+            (p) => p.status !== "completed" && p.status !== "rejected",
           ).length;
           setProjects(mappedProjects);
         }
@@ -65,7 +62,7 @@ export const ClientDashboard = ({ user, setActiveTab }) => {
         if (tickRes.ok) {
           const data = await tickRes.json();
           activeTicketsCount = data.filter(
-            (t) => t.status !== "Resolved" && t.status !== "Closed"
+            (t) => t.status !== "Resolved" && t.status !== "Closed",
           ).length;
         }
 
@@ -197,8 +194,8 @@ export const ClientDashboard = ({ user, setActiveTab }) => {
                             phase.status === "In Progress"
                               ? "bg-akatech-gold/20 text-akatech-gold"
                               : phase.status === "Completed"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                           }`}
                         >
                           {phase.status}

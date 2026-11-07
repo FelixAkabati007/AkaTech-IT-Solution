@@ -12,37 +12,59 @@ const { Server } = require("socket.io");
 const fs = require("fs");
 const xss = require("xss");
 const crypto = require("crypto");
-const bcrypt = require("bcryptjs");
 const { OAuth2Client } = require("google-auth-library");
 const dal = require("./dal.cjs");
 const {
+  sendEmail,
   sendLoginNotification,
   sendInvoiceEmail,
 } = require("./emailService.cjs");
 const { PROJECT_TYPES } = require("./constants.cjs");
+const {
+  encrypt,
+  decrypt,
+  hashPassword,
+  verifyPassword,
+  setAuthCookie,
+  clearAuthCookie,
+  resolveRequestedRole,
+} = require("./security.cjs");
 
 const app = express();
 const server = http.createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
-const ALLOWED_ORIGINS = [
-  CLIENT_URL,
-  "https://aka-tech-two.vercel.app",
-  "http://localhost:5173", // Vite default
-  "http://localhost:5175", // Current dev port
-  "http://localhost:3000", // Common alternative
-];
+const ALLOWED_ORIGINS = Array.from(
+  new Set(
+    [
+      CLIENT_URL,
+      process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+        : [],
+      process.env.NODE_ENV !== "production"
+        ? [
+            "http://localhost:5173",
+            "http://localhost:5175",
+            "http://localhost:3000",
+          ]
+        : [],
+    ]
+      .flat()
+      .filter(Boolean),
+  ),
+);
+const ALLOW_VERCEL_PREVIEWS = process.env.ALLOW_VERCEL_PREVIEWS === "true";
 
 if (!process.env.GOOGLE_CLIENT_ID) {
   console.warn(
-    "WARNING: GOOGLE_CLIENT_ID is not set in environment variables. Google Auth will fail."
+    "WARNING: GOOGLE_CLIENT_ID is not set in environment variables. Google Auth will fail.",
   );
 } else {
   console.log(
     `Google Auth configured with Client ID: ${process.env.GOOGLE_CLIENT_ID.substring(
       0,
-      10
-    )}...`
+      10,
+    )}...`,
   );
 }
 
@@ -81,7 +103,7 @@ app.use(
   helmet({
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
+  }),
 );
 app.use(
   cors({
@@ -89,8 +111,8 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       if (
-        ALLOWED_ORIGINS.indexOf(origin) !== -1 ||
-        origin.endsWith(".vercel.app")
+        ALLOWED_ORIGINS.includes(origin) ||
+        (ALLOW_VERCEL_PREVIEWS && origin.endsWith(".vercel.app"))
       ) {
         callback(null, true);
       } else {
@@ -100,14 +122,14 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
-  })
+  }),
 );
 app.use(
   bodyParser.json({
     verify: (req, res, buf) => {
       req.rawBody = buf.toString();
     },
-  })
+  }),
 );
 app.use(cookieParser());
 
@@ -128,17 +150,6 @@ const limiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
 });
 app.use("/api/", limiter);
-
-// --- Encryption Helper (Simple for Demo) ---
-const encrypt = (text) => {
-  // In a real app, use crypto with a proper key/iv.
-  // For this demo, we'll base64 encode to simulate "storage format"
-  return Buffer.from(text).toString("base64");
-};
-
-const decrypt = (text) => {
-  return Buffer.from(text, "base64").toString("utf8");
-};
 
 // --- Audit Log Helper ---
 const logAudit = async (action, performedBy, details) => {
@@ -207,8 +218,17 @@ app.post("/api/webhooks/payment", async (req, res) => {
 
     console.log(`Webhook received from ${provider || "unknown"}:`, req.body);
 
+    // Enforce webhook signature verification
+    if (!paystackSignature && !stripeSignature) {
+      console.warn("Rejected unauthenticated payment webhook call: Missing signature header");
+      return res.status(401).json({ error: "Unauthorized: Missing webhook signature header" });
+    }
+
     // Signature Verification (Paystack)
-    if (process.env.PAYSTACK_SECRET_KEY && paystackSignature) {
+    if (paystackSignature) {
+      if (!process.env.PAYSTACK_SECRET_KEY) {
+        return res.status(500).json({ error: "PAYSTACK_SECRET_KEY is not configured" });
+      }
       const hash = crypto
         .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
         .update(req.rawBody || JSON.stringify(req.body))
@@ -222,7 +242,10 @@ app.post("/api/webhooks/payment", async (req, res) => {
     }
 
     // Signature Verification (Stripe)
-    if (process.env.STRIPE_WEBHOOK_SECRET && stripeSignature) {
+    if (stripeSignature) {
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        return res.status(500).json({ error: "STRIPE_WEBHOOK_SECRET is not configured" });
+      }
       try {
         const parts = stripeSignature.split(",");
         const timestamp = parts.find((p) => p.startsWith("t="))?.split("=")[1];
@@ -275,12 +298,12 @@ app.post("/api/webhooks/payment", async (req, res) => {
         const allInvoices = await dal.getInvoices();
         invoice = allInvoices.find(
           (inv) =>
-            inv.id === finalInvoiceId || inv.referenceNumber === finalInvoiceId
+            inv.id === finalInvoiceId || inv.referenceNumber === finalInvoiceId,
         );
       } else if (finalReference) {
         const allInvoices = await dal.getInvoices();
         invoice = allInvoices.find(
-          (inv) => inv.referenceNumber === finalReference
+          (inv) => inv.referenceNumber === finalReference,
         );
       }
 
@@ -297,11 +320,11 @@ app.post("/api/webhooks/payment", async (req, res) => {
           if (invoice.userId) {
             try {
               const subscriptions = await dal.getSubscriptionsByUserId(
-                invoice.userId
+                invoice.userId,
               );
               // Activate the most recent pending subscription
               const pendingSub = subscriptions.find(
-                (s) => s.status === "pending"
+                (s) => s.status === "pending",
               );
               if (pendingSub) {
                 await dal.updateSubscription(pendingSub.id, {
@@ -310,7 +333,7 @@ app.post("/api/webhooks/payment", async (req, res) => {
                   updatedAt: new Date(),
                 });
                 console.log(
-                  `Activated subscription ${pendingSub.id} for user ${invoice.userId}`
+                  `Activated subscription ${pendingSub.id} for user ${invoice.userId}`,
                 );
                 // Notify User about subscription
                 await dal.createNotification({
@@ -324,7 +347,7 @@ app.post("/api/webhooks/payment", async (req, res) => {
             } catch (subError) {
               console.error(
                 "Error activating subscription from webhook:",
-                subError
+                subError,
               );
             }
           }
@@ -346,12 +369,12 @@ app.post("/api/webhooks/payment", async (req, res) => {
           // Send Email Receipt
           const user = await dal.getUserById(invoice.userId);
           if (user) {
-            sendInvoiceEmail(user, invoice, "receipt").catch(console.error);
+            sendInvoiceEmail(user.email, invoice, null).catch(console.error);
           }
         }
       } else {
         console.warn(
-          `Invoice not found for webhook reference: ${finalReference}`
+          `Invoice not found for webhook reference: ${finalReference}`,
         );
         // Don't return 404 to avoid retries from provider
       }
@@ -398,7 +421,7 @@ app.post("/api/signup/verify-google", async (req, res) => {
         "https://www.googleapis.com/oauth2/v3/userinfo",
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       if (!userInfoRes.ok)
         throw new Error("Failed to fetch user info with access token");
@@ -439,7 +462,7 @@ app.post("/api/signup/verify-google", async (req, res) => {
 
       if (!user) {
         throw new Error(
-          "Failed to create user. Database might be unavailable."
+          "Failed to create user. Database might be unavailable.",
         );
       }
 
@@ -466,28 +489,27 @@ app.post("/api/signup/verify-google", async (req, res) => {
     if (user.role === "admin") {
       // Intentionally not awaiting to avoid blocking response
       sendLoginNotification(user.email, req.ip, req.get("User-Agent")).catch(
-        console.error
+        console.error,
       );
     }
 
     const sessionToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       SECRET_KEY,
-      { expiresIn: "24h" }
+      { expiresIn: "24h" },
+    );
+    const signupToken = jwt.sign(
+      { email: user.email, verified: true, method: "google" },
+      SECRET_KEY,
+      { expiresIn: "1h" },
     );
 
-    // Set secure cookie
-    res.cookie("auth_token", sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: "/",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
+    setAuthCookie(res, sessionToken);
 
     const { passwordHash, ...safeUser } = user;
     res.json({
       token: sessionToken,
+      signupToken,
       user: { ...safeUser, hasPassword: !!passwordHash },
       email: user.email,
     });
@@ -524,12 +546,12 @@ app.post("/api/auth/change-password", authenticateToken, async (req, res) => {
     if (user.passwordHash) {
       if (!oldPassword)
         return res.status(400).json({ error: "Current password is required" });
-      const match = await bcrypt.compare(oldPassword, user.passwordHash);
-      if (!match)
+      const { valid } = await verifyPassword(oldPassword, user.passwordHash);
+      if (!valid)
         return res.status(400).json({ error: "Incorrect current password" });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
     await dal.updateUser(user.id, { passwordHash: hashedPassword });
     await logAudit("PASSWORD_CHANGE", user.id, { email: user.email });
 
@@ -567,32 +589,30 @@ app.post("/api/auth/register", async (req, res) => {
       .json({ error: "User already exists with this email." });
   }
 
-  const hashedPassword = crypto
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
+  let actingUser = null;
+  const maybeToken =
+    req.cookies.auth_token ||
+    (req.headers["authorization"] &&
+      req.headers["authorization"].split(" ")[1]);
+
+  if (maybeToken) {
+    try {
+      const decoded = jwt.verify(maybeToken, SECRET_KEY);
+      actingUser = await dal.getUserById(decoded.id);
+    } catch (error) {
+      actingUser = null;
+    }
+  }
+
+  const isAdminRequest = actingUser?.role === "admin";
+  const hashedPassword = await hashPassword(password);
 
   const newUser = await dal.createUser({
     name: xss(name),
     email: xss(email),
     passwordHash: hashedPassword,
-    role: role || "client",
+    role: resolveRequestedRole(role, isAdminRequest),
     accountType: accountType || "Auto",
-  });
-
-  const token = jwt.sign(
-    { id: newUser.id, email: newUser.email, role: newUser.role },
-    SECRET_KEY,
-    { expiresIn: "24h" }
-  );
-
-  // Set secure cookie
-  res.cookie("auth_token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
   });
 
   // Return user without password
@@ -600,6 +620,17 @@ app.post("/api/auth/register", async (req, res) => {
 
   // Notify clients
   io.emit("user_registered", userWithoutPassword);
+
+  if (isAdminRequest) {
+    return res.status(201).json({ user: userWithoutPassword });
+  }
+
+  const token = jwt.sign(
+    { id: newUser.id, email: newUser.email, role: newUser.role },
+    SECRET_KEY,
+    { expiresIn: "24h" },
+  );
+  setAuthCookie(res, token);
 
   res.status(201).json({ token, user: userWithoutPassword });
 });
@@ -624,7 +655,7 @@ app.get(
       console.error("Get Clients Error:", error);
       res.status(500).json({ error: "Failed to fetch clients" });
     }
-  }
+  },
 );
 
 // Admin Projects Routes
@@ -640,7 +671,7 @@ app.get(
       console.error("Get Projects Error:", error);
       res.status(500).json({ error: "Failed to fetch projects" });
     }
-  }
+  },
 );
 
 app.post(
@@ -664,7 +695,7 @@ app.post(
       console.error("Create Project Error:", error);
       res.status(500).json({ error: "Failed to create project" });
     }
-  }
+  },
 );
 
 app.put(
@@ -686,7 +717,7 @@ app.put(
       console.error("Update Project Error:", error);
       res.status(500).json({ error: "Failed to update project" });
     }
-  }
+  },
 );
 
 app.delete(
@@ -702,7 +733,7 @@ app.delete(
       console.error("Delete Project Error:", error);
       res.status(500).json({ error: "Failed to delete project" });
     }
-  }
+  },
 );
 
 // 1. Client Message Submission
@@ -717,7 +748,7 @@ app.post("/api/client-messages", async (req, res) => {
   // Profanity Filter (Simple list)
   const badWords = ["spam", "junk", "badword"]; // Expand as needed
   const containsProfanity = badWords.some((word) =>
-    message.toLowerCase().includes(word)
+    message.toLowerCase().includes(word),
   );
   if (containsProfanity) {
     return res
@@ -750,11 +781,6 @@ app.post("/api/client-messages", async (req, res) => {
   io.emit("new_message", { ...newMessage, content: sanitizedMessage }); // Send decrypted content to admin
 
   res.status(201).json({ message: "Message sent successfully." });
-});
-
-// 1a. Get Project Options
-app.get("/api/projects/options", (req, res) => {
-  res.json(PROJECT_TYPES);
 });
 
 // 1b. Project Request Submission
@@ -797,7 +823,7 @@ app.post(
     try {
       // 1. Create Invoice Record
       const referenceNumber = `INV-${Date.now()}-${Math.floor(
-        Math.random() * 1000
+        Math.random() * 1000,
       )}`;
       const newInvoice = await dal.createInvoice({
         userId,
@@ -835,7 +861,7 @@ app.post(
       console.error("Invoice generation error:", error);
       res.status(500).json({ error: "Failed to generate invoice" });
     }
-  }
+  },
 );
 
 app.post("/api/invoices/request", authenticateToken, async (req, res) => {
@@ -961,7 +987,7 @@ app.post("/api/signup/complete", async (req, res) => {
 
       // 2. Create Invoice
       const referenceNumber = `INV-${Date.now()}-${Math.floor(
-        Math.random() * 1000
+        Math.random() * 1000,
       )}`;
       const newInvoice = await dal.createInvoice({
         userId: user.id,
@@ -997,8 +1023,9 @@ app.post("/api/signup/complete", async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       SECRET_KEY,
-      { expiresIn: "24h" }
+      { expiresIn: "24h" },
     );
+    setAuthCookie(res, token);
 
     const { passwordHash, ...safeUser } = user;
     res.json({ token, user: { ...safeUser, hasPassword: !!passwordHash } });
@@ -1121,7 +1148,7 @@ app.post(
         }`;
       } else {
         paymentNote = `Paid via Card. Details: ${JSON.stringify(
-          details || {}
+          details || {},
         )}`;
       }
 
@@ -1186,7 +1213,7 @@ app.post(
       console.error("Payment Processing Error:", error);
       res.status(500).json({ error: "Failed to process payment." });
     }
-  }
+  },
 );
 
 // 1i. Get Admin Invoices
@@ -1324,7 +1351,7 @@ app.get(
       console.error("Dashboard Stats Error:", error);
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
-  }
+  },
 );
 
 const os = require("os");
@@ -1368,7 +1395,7 @@ app.get(
       console.error("System Health Error:", error);
       res.status(500).json({ error: "Failed to fetch system health" });
     }
-  }
+  },
 );
 
 // 1m. Get Audit Logs
@@ -1395,6 +1422,7 @@ app.post("/api/tickets", async (req, res) => {
   }
 
   const newTicket = await dal.createTicket({
+    userId: null,
     subject: xss(subject),
     message: encrypt(xss(message)),
     priority: xss(priority || "medium"),
@@ -1418,12 +1446,12 @@ app.post("/api/tickets", async (req, res) => {
   res.status(201).json({ message: "Support ticket created." });
 });
 
-// 1d. Get Client Tickets (Public/Simple Auth for Demo)
-app.get("/api/client/tickets", async (req, res) => {
-  const { email } = req.query;
-  if (!email) return res.status(400).json({ error: "Email is required" });
-
-  const tickets = await dal.getTicketsByEmail(email);
+// 1d. Get Client Tickets
+app.get("/api/client/tickets", authenticateToken, async (req, res) => {
+  const tickets = await dal.getTicketsForUser({
+    userId: req.user.id,
+    email: req.user.email,
+  });
   const userTickets = tickets.map((t) => ({
     ...t,
     message: decrypt(t.message),
@@ -1437,11 +1465,11 @@ app.get("/api/client/tickets", async (req, res) => {
 });
 
 // 1e. Get Client Projects
-app.get("/api/client/projects", async (req, res) => {
-  const { email } = req.query;
-  if (!email) return res.status(400).json({ error: "Email is required" });
-
-  const projects = await dal.getProjectsByEmail(email);
+app.get("/api/client/projects", authenticateToken, async (req, res) => {
+  const projects = await dal.getProjectsForUser({
+    userId: req.user.id,
+    email: req.user.email,
+  });
   const userProjects = projects.map((p) => ({
     ...p,
     notes: decrypt(p.notes),
@@ -1451,19 +1479,18 @@ app.get("/api/client/projects", async (req, res) => {
 });
 
 // 1f. Client Reply to Ticket
-app.patch("/api/client/tickets/:id", async (req, res) => {
+app.patch("/api/client/tickets/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { email, response } = req.body;
+  const { response } = req.body;
 
-  if (!email || !response)
-    return res.status(400).json({ error: "Email and response required" });
+  if (!response) return res.status(400).json({ error: "Response is required" });
 
   const ticket = await dal.getTicketById(id);
 
   if (!ticket) return res.status(404).json({ error: "Ticket not found" });
 
   // Verify ownership
-  if (ticket.userEmail !== email) {
+  if (ticket.userEmail !== req.user.email) {
     return res.status(403).json({ error: "Unauthorized" });
   }
 
@@ -1525,6 +1552,33 @@ app.get("/api/clients", authenticateToken, async (req, res) => {
   res.json(Array.from(clients.values()));
 });
 
+app.post(
+  "/api/send-email",
+  authenticateToken,
+  authorizeAdmin,
+  async (req, res) => {
+    const { to, subject, message } = req.body;
+
+    if (!to || !subject || !message) {
+      return res
+        .status(400)
+        .json({ error: "Recipient, subject, and message are required" });
+    }
+
+    try {
+      await sendEmail(xss(to), xss(subject), `<pre>${xss(message)}</pre>`);
+      await logAudit("SEND_EMAIL", req.user.id, {
+        to: xss(to),
+        subject: xss(subject),
+      });
+      res.json({ message: "Email queued successfully" });
+    } catch (error) {
+      console.error("Send Email Error:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  },
+);
+
 // 2. Login (Admin & Client)
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body; // username is email for clients
@@ -1551,26 +1605,28 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) {
+    const { valid, needsRehash } = await verifyPassword(
+      password,
+      user.passwordHash,
+    );
+    if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (needsRehash) {
+      await dal.updateUser(user.id, {
+        passwordHash: await hashPassword(password),
+      });
     }
 
     // 4. Generate Token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       SECRET_KEY,
-      { expiresIn: "24h" }
+      { expiresIn: "24h" },
     );
 
-    // Set secure cookie
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: "/",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    setAuthCookie(res, token);
 
     // 5. Audit Log
     await logAudit("USER_LOGIN", user.id, { email: user.email });
@@ -1585,12 +1641,7 @@ app.post("/api/login", async (req, res) => {
 
 // 2a. Logout
 app.post("/api/logout", (req, res) => {
-  res.clearCookie("auth_token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    path: "/",
-  });
+  clearAuthCookie(res);
   res.json({ message: "Logged out" });
 });
 
@@ -1633,7 +1684,7 @@ app.put(
       console.error("Update Project Options Error:", error);
       res.status(500).json({ error: "Failed to update project options" });
     }
-  }
+  },
 );
 
 // --- Invoice Verification ---
@@ -1665,7 +1716,7 @@ app.patch(
       console.error("Verify Invoice Error:", error);
       res.status(500).json({ error: "Failed to verify invoice" });
     }
-  }
+  },
 );
 
 // 3. Get Data (Admin Only)
@@ -1735,7 +1786,7 @@ app.post("/api/subscriptions", authenticateToken, async (req, res) => {
     status: "pending",
     startDate: new Date().toISOString(),
     endDate: new Date(
-      new Date().setMonth(new Date().getMonth() + (durationMonths || 1))
+      new Date().setMonth(new Date().getMonth() + (durationMonths || 1)),
     ).toISOString(),
     paymentHistory: [],
   });
@@ -1829,7 +1880,7 @@ app.post("/api/subscriptions", authenticateToken, async (req, res) => {
     {
       subId: newSub.id,
       plan,
-    }
+    },
   );
   res.status(201).json(newSub);
 });
@@ -1868,7 +1919,7 @@ app.patch(
           // Look for a pending project matching the plan or just the most recent pending one?
           // Matching plan is safer.
           projectToActivate = userProjects.find(
-            (p) => p.plan === sub.plan && p.status === "pending"
+            (p) => p.plan === sub.plan && p.status === "pending",
           );
 
           if (projectToActivate) {
@@ -1887,7 +1938,7 @@ app.patch(
               plan: sub.plan,
               status: "in-progress",
               notes: encrypt(
-                "Project started via subscription approval (fallback)."
+                "Project started via subscription approval (fallback).",
               ),
             });
           }
@@ -1915,7 +1966,7 @@ app.patch(
         const months = details?.months || 1;
         const currentEnd = new Date(sub.endDate);
         updates.endDate = new Date(
-          currentEnd.setMonth(currentEnd.getMonth() + months)
+          currentEnd.setMonth(currentEnd.getMonth() + months),
         ).toISOString();
         updated = true;
         break;
@@ -1930,14 +1981,14 @@ app.patch(
         req.user.username,
         {
           subId: id,
-        }
+        },
       );
       res.json({
         subscription: updatedSub,
         project: res.locals.newProject,
       });
     }
-  }
+  },
 );
 
 // Update Subscription (Edit)
@@ -1972,7 +2023,7 @@ app.put(
       console.error("Update Subscription Error:", error);
       res.status(500).json({ error: "Failed to update subscription" });
     }
-  }
+  },
 );
 
 // Delete Subscription
@@ -1994,7 +2045,7 @@ app.delete(
       console.error("Delete Subscription Error:", error);
       res.status(500).json({ error: "Failed to delete subscription" });
     }
-  }
+  },
 );
 
 // New Endpoint: Generate Invoice
@@ -2160,7 +2211,7 @@ app.patch(
     await dal.markNotificationRead(id, userId);
 
     res.json({ message: "Marked as read" });
-  }
+  },
 );
 
 // 9d. Mark All Notifications as Read
@@ -2173,56 +2224,10 @@ app.patch(
     await dal.markAllNotificationsRead(userId);
 
     res.json({ message: "All marked as read" });
-  }
+  },
 );
 
 // --- Multi-Step Signup Endpoints ---
-
-// 10. Google Verification
-app.post("/api/signup/verify-google", async (req, res) => {
-  console.log("Verify Google Request Body:", req.body);
-  const { token } = req.body;
-  console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-
-  if (!token) return res.status(400).json({ error: "Token is required" });
-
-  try {
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { email, email_verified } = payload;
-
-    if (email_verified) {
-      // Generate a temporary signup token
-      const signupToken = jwt.sign(
-        { email, verified: true, method: "google" },
-        SECRET_KEY,
-        { expiresIn: "1h" }
-      );
-
-      // Return success
-      res.json({
-        message: "Email verified successfully",
-        email,
-        method: "google",
-        signupToken,
-      });
-    } else {
-      console.warn(`Google email not verified for ${email}`);
-      res.status(400).json({ error: "Google email not verified" });
-    }
-  } catch (error) {
-    console.error("Google verification error:", error);
-    // Provide more specific error messages if possible
-    const errorMessage = error.message || "Invalid Google Token";
-    res
-      .status(401)
-      .json({ error: "Authentication failed", details: errorMessage });
-  }
-});
 
 // 10c. Save Progress (Draft)
 app.post("/api/signup/progress", async (req, res) => {
@@ -2260,255 +2265,7 @@ app.get("/api/signup/progress", async (req, res) => {
   }
 });
 
-// 10e. Complete Signup
-app.post("/api/signup/complete", async (req, res) => {
-  const { email, finalData, signupToken } = req.body;
-
-  try {
-    // Verify signup token if present (for passwordless/Google signup)
-    let isVerified = false;
-    if (signupToken) {
-      try {
-        const decoded = jwt.verify(signupToken, SECRET_KEY);
-        if (decoded.email === email && decoded.verified) {
-          isVerified = true;
-        }
-      } catch (err) {
-        console.warn("Invalid signup token:", err.message);
-      }
-    }
-
-    // 1. Create User if not exists
-    let user = await dal.getUserByEmail(email);
-    let isNewUser = false;
-
-    if (!user) {
-      if (!finalData.password && !isVerified) {
-        return res
-          .status(400)
-          .json({ error: "Password required for new users" });
-      }
-
-      const hashedPassword = finalData.password
-        ? crypto.createHash("sha256").update(finalData.password).digest("hex")
-        : crypto
-            .createHash("sha256")
-            .update(crypto.randomBytes(32).toString("hex"))
-            .digest("hex"); // Random password for verified users
-
-      user = await dal.createUser({
-        name: xss(finalData.name || "Client"),
-        email: xss(email),
-        passwordHash: hashedPassword,
-        role: "client",
-        accountType: "Transparent Package", // Default or from finalData
-        company: xss(finalData.companyName || ""),
-      });
-      isNewUser = true;
-    } else {
-      // Update existing user details
-      const updates = {};
-      if (finalData.name) updates.name = xss(finalData.name);
-      if (finalData.companyName) updates.company = xss(finalData.companyName);
-
-      if (Object.keys(updates).length > 0) {
-        await dal.updateUser(user.id, updates);
-        // Refresh user object locally
-        user = { ...user, ...updates };
-      }
-    }
-
-    // 2. Create Subscription/Project Request
-    const newSub = await dal.createSubscription({
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      plan: xss(finalData.selectedPackage || "Unknown"),
-      status: "pending",
-      startDate: new Date(),
-      details: encrypt(JSON.stringify(finalData)), // Encrypt all extra form data
-    });
-
-    // 3. Generate Invoice Automatically
-    try {
-      const plan = finalData.selectedPackage || "Unknown";
-      let price = 0;
-
-      const PRICING = {
-        "Startup Identity": 2500,
-        "Enterprise Growth": 6500,
-        "Premium Commerce": 12000,
-      };
-
-      if (PRICING[plan]) {
-        price = PRICING[plan];
-      } else {
-        // Check Dynamic Project Types
-        try {
-          const setting = await dal.getSystemSetting("project_options");
-          const options =
-            setting && setting.value ? setting.value : PROJECT_TYPES;
-
-          for (const cat of options) {
-            const item = cat.items.find((i) => i.name === plan);
-            if (item) {
-              price = item.price;
-              break;
-            }
-          }
-        } catch (e) {
-          // Fallback to constants if DB fails
-          for (const cat of PROJECT_TYPES) {
-            const item = cat.items.find((i) => i.name === plan);
-            if (item) {
-              price = item.price;
-              break;
-            }
-          }
-        }
-      }
-
-      if (price > 0) {
-        const referenceNumber = `INV-${Date.now()}-${Math.floor(
-          Math.random() * 1000
-        )}`;
-        const newInvoice = await dal.createInvoice({
-          referenceNumber,
-          userId: user.id,
-          projectId: null,
-          amount: price.toString(),
-          status: "Sent", // Ready for payment
-          description: encrypt(`Invoice for subscription: ${plan}`),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        });
-
-        // Notify Client
-        io.emit("invoice_generated", newInvoice);
-
-        // Create Notification
-        await dal.createNotification({
-          userId: user.id,
-          target: "user",
-          title: "Invoice Generated",
-          message: `An invoice for your ${plan} subscription has been generated. Please proceed to payment.`,
-          readBy: [],
-        });
-      }
-    } catch (invError) {
-      console.error("Auto-Invoice Generation Error:", invError);
-      // Continue without failing signup
-    }
-
-    // 4. Log Audit
-    await dal.createAuditLog({
-      action: "SIGNUP_COMPLETE",
-      performedBy: user.name,
-      details: {
-        email: user.email,
-        package: newSub.plan,
-        isNewUser,
-      },
-    });
-
-    // 5. Generate Token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      SECRET_KEY,
-      { expiresIn: "24h" }
-    );
-
-    // Emit socket event for real-time dashboard updates
-    io.emit("new_user", {
-      user: { id: user.id, name: user.name, email: user.email },
-    });
-    // Also emit generic update
-    io.emit("dashboard_update", { type: "user_registration" });
-
-    res.status(201).json({
-      message: "Signup completed successfully",
-      token,
-      user: { ...user, password: undefined },
-    });
-  } catch (error) {
-    console.error("Signup Completion Error:", error);
-    res.status(500).json({ error: "Signup failed" });
-  }
-});
-
-// --- Webhook for Payment Confirmation (External Providers) ---
-app.post("/api/webhooks/payment", async (req, res) => {
-  // In a real scenario, verify signature from payment provider (e.g., Paystack/Stripe signature)
-  const { reference, status, amount, externalId } = req.body;
-
-  console.log("Payment Webhook Received:", req.body);
-
-  if (!reference || !status) {
-    return res.status(400).json({ error: "Invalid payload" });
-  }
-
-  try {
-    // 1. Find Invoice by Reference (or custom logic if reference maps to transaction ID)
-    // Assuming reference here matches the invoice payment reference we stored or the invoice ID
-    // For this implementation, let's assume we store the invoice reference in the "reference" field
-
-    // We need to find which invoice this payment corresponds to.
-    // Usually, we would have stored the external transaction ID with the invoice or payment attempt.
-    // For simplicity, let's search for an invoice that might match this reference or assume 'reference' is our Invoice Reference Number.
-
-    const invoice = await dal.getInvoiceByReference(reference); // Need to implement this in DAL or use getInvoice
-
-    if (!invoice) {
-      // If not found by invoice reference, maybe it's a payment transaction reference
-      console.warn(`Invoice not found for webhook reference: ${reference}`);
-      return res.status(404).json({ message: "Invoice not found" });
-    }
-
-    if (status === "success" || status === "paid") {
-      // Update Invoice Status
-      await dal.updateInvoice(invoice.id, {
-        status: "Paid",
-        paidAt: new Date(),
-        paymentMethod: "external_webhook",
-      });
-
-      // Update Subscription Status if linked
-      const subscriptions = await dal.getSubscriptionsByUserId(invoice.userId);
-      // Logic to find relevant subscription.
-      // Simplified: Activate the most recent pending subscription
-      const pendingSub = subscriptions.find((s) => s.status === "pending");
-      if (pendingSub) {
-        await dal.updateSubscription(pendingSub.id, { status: "active" });
-      }
-
-      // Create Notification
-      await dal.createNotification({
-        userId: invoice.userId,
-        target: "user",
-        title: "Payment Received",
-        message: `Payment for invoice ${invoice.referenceNumber} was successful via webhook.`,
-        readBy: [],
-      });
-
-      io.emit("invoice_updated", { ...invoice, status: "Paid" });
-    } else if (status === "failed") {
-      // Log failure
-      await dal.createNotification({
-        userId: invoice.userId,
-        target: "user",
-        title: "Payment Failed",
-        message: `Payment for invoice ${invoice.referenceNumber} failed.`,
-        readBy: [],
-      });
-    }
-
-    res.status(200).json({ received: true });
-  } catch (error) {
-    console.error("Webhook processing error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// 4. Update Status (Generic)
+// 4. Update Status (Generic with RBAC & Tenant Isolation)
 app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
   const { resource, id } = req.params;
   const { status, response } = req.body; // response is for tickets/messages
@@ -2517,22 +2274,32 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
 
   try {
     if (resource === "tickets") {
+      const ticket = await dal.getTicketById(id);
+      if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+      const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+      const isOwner = ticket.userId === req.user.id || ticket.userEmail === req.user.email;
+
+      if (!isAdmin && !isOwner) {
+        return res.status(403).json({ error: "Forbidden: Cannot access this ticket" });
+      }
+
       const updates = {};
-      if (status) updates.status = status;
+      if (status && isAdmin) updates.status = status;
 
       // If responding to a ticket
       if (response) {
-        const ticket = await dal.getTicketById(id);
-        if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-
         const responses = ticket.responses || [];
         responses.push({
           id: crypto.randomUUID(),
-          sender: "admin",
-          message: encrypt(response),
+          sender: isAdmin ? "admin" : "client",
+          message: encrypt(xss(response)),
           timestamp: new Date().toISOString(),
         });
         updates.responses = responses;
+        if (!isAdmin) {
+          updates.status = "open"; // Re-open or keep open on client reply
+        }
       }
 
       updatedItem = await dal.updateTicket(id, updates);
@@ -2544,6 +2311,9 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
         }));
       }
     } else if (resource === "messages") {
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+        return res.status(403).json({ error: "Forbidden: Admin access required" });
+      }
       const updates = {};
       if (status) updates.status = status;
       updatedItem = await dal.updateMessage(id, updates);
@@ -2551,6 +2321,9 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
         updatedItem.content = decrypt(updatedItem.content);
       }
     } else if (resource === "projects") {
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+        return res.status(403).json({ error: "Forbidden: Admin access required" });
+      }
       const updates = {};
       if (status) updates.status = status;
       updatedItem = await dal.updateProject(id, updates);
@@ -2558,7 +2331,9 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
         updatedItem.notes = decrypt(updatedItem.notes);
       }
     } else if (resource === "subscriptions") {
-      // Subscriptions are handled by specific endpoint, but if generic is used:
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
+        return res.status(403).json({ error: "Forbidden: Admin access required" });
+      }
       const updates = {};
       if (status) updates.status = status;
       updatedItem = await dal.updateSubscription(id, updates);
@@ -2572,7 +2347,8 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Item not found" });
     }
 
-    io.emit(`update_${resource}`, updatedItem); // Notify clients
+    // Emit safe signal without broadcasting decrypted sensitive data globally
+    io.emit(`update_${resource}`, { id: updatedItem.id, status: updatedItem.status });
     res.json(updatedItem);
   } catch (error) {
     console.error(`Update error for ${resource}:`, error);
@@ -2580,8 +2356,8 @@ app.patch("/api/:resource/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// 8. Delete Resource
-app.delete("/api/:resource/:id", authenticateToken, async (req, res) => {
+// 8. Delete Resource (Admin only)
+app.delete("/api/:resource/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   const { resource, id } = req.params;
 
   try {
@@ -2596,10 +2372,6 @@ app.delete("/api/:resource/:id", authenticateToken, async (req, res) => {
     } else {
       return res.status(404).json({ error: "Resource type not found" });
     }
-
-    // We can't easily check if it was actually deleted without a prior get,
-    // but for delete it's usually idempotent/safe to return success.
-    // Or we could check if getById returns null after.
 
     io.emit(`delete_${resource}`, id); // Notify clients
     res.json({ message: "Deleted successfully" });
@@ -2652,7 +2424,7 @@ app.post(
     });
 
     res.status(201).json(newNotification);
-  }
+  },
 );
 
 app.get(
@@ -2662,7 +2434,7 @@ app.get(
   async (req, res) => {
     const notifications = await dal.getAllNotifications();
     res.json(notifications.slice(0, 50));
-  }
+  },
 );
 
 // --- System Settings Routes ---
@@ -2696,7 +2468,7 @@ app.put(
       console.error("Error saving settings:", err);
       res.status(500).json({ error: "Internal Server Error" });
     }
-  }
+  },
 );
 
 // --- Global Error Handler ---

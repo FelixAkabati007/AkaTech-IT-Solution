@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icons } from "@components/ui/Icons";
 import { PORTFOLIO_DATA } from "../lib/data";
-import { localDataService } from "../lib/localData";
 
 export const About = () => {
   const [locked, setLocked] = useState({});
@@ -10,15 +9,21 @@ export const About = () => {
   const [syncError, setSyncError] = useState(null);
 
   useEffect(() => {
-    const checkSubscriptionStatus = () => {
+    const checkSubscriptionStatus = async () => {
       try {
-        const subscriptions = localDataService.getSubscriptions();
-        const active = subscriptions.some((sub) => sub.status === "active");
-        setHasActiveSubscription(active);
-        setSyncError(null);
+        const res = await fetch("/api/subscriptions", { credentials: "include" });
+        if (res.ok) {
+          const subscriptions = await res.json();
+          const active =
+            Array.isArray(subscriptions) &&
+            subscriptions.some((sub) => (sub.status || "").toLowerCase() === "active");
+          setHasActiveSubscription(active);
+          setSyncError(null);
+        } else {
+          setHasActiveSubscription(false);
+        }
       } catch (error) {
-        console.error("Failed to sync subscription status:", error);
-        setSyncError("Sync failed");
+        setHasActiveSubscription(false);
       }
     };
 

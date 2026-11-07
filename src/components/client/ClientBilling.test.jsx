@@ -11,14 +11,14 @@ import { jsPDF } from "jspdf";
 
 // Mock Icons
 vi.mock("@components/ui/Icons", () => ({
-  Icons: {
-    ShoppingBag: () => <div data-testid="icon-shopping-bag" />,
-    Download: () => <div data-testid="icon-download" />,
-    CreditCard: () => <div data-testid="icon-credit-card" />,
-    Lock: () => <div data-testid="icon-lock" />,
-    X: () => <div data-testid="icon-x" />,
-    Loader: () => <div data-testid="icon-loader" />,
-  },
+  Icons: new Proxy(
+    {},
+    {
+      get: (target, prop) => (props) => (
+        <div data-testid={`icon-${String(prop).toLowerCase()}`} {...props} />
+      ),
+    }
+  ),
 }));
 
 // Mock ToastProvider

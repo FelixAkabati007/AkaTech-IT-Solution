@@ -19,9 +19,9 @@ export const ClientSupport = ({ user }) => {
   const fetchTickets = async () => {
     if (!user?.email) return;
     try {
-      const res = await fetch(
-        `/api/client/tickets?email=${encodeURIComponent(user.email)}`
-      );
+      const res = await fetch("/api/client/tickets", {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setTickets(data);
@@ -73,7 +73,6 @@ export const ClientSupport = ({ user }) => {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          email: user.email,
           response: replyMessage,
         }),
       });

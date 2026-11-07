@@ -48,7 +48,7 @@ export const ClientBilling = ({ user }) => {
     try {
       const [invRes, projRes, settingsRes] = await Promise.all([
         fetch("/api/client/invoices", { credentials: "include" }),
-        fetch(`/api/client/projects?email=${user.email}`, {
+        fetch("/api/client/projects", {
           credentials: "include",
         }),
         fetch("/api/settings", { credentials: "include" }),
@@ -185,7 +185,7 @@ export const ClientBilling = ({ user }) => {
       .filter(
         (inv) =>
           ["Unpaid", "Sent", "Overdue"].includes(inv.status) &&
-          inv.dueDate !== "Pending"
+          inv.dueDate !== "Pending",
       )
       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
@@ -199,6 +199,7 @@ export const ClientBilling = ({ user }) => {
     return invoices.filter((inv) => {
       const projectTitle =
         projects.find((p) => p.id === inv.projectId)?.title ||
+        projects.find((p) => p.id === inv.projectId)?.name ||
         inv.projectId ||
         "";
       const matchesSearch =
@@ -215,7 +216,7 @@ export const ClientBilling = ({ user }) => {
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   const currentInvoices = filteredInvoices.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const getDisplayProject = (invoice) => {
@@ -315,7 +316,7 @@ export const ClientBilling = ({ user }) => {
       // Determine if projectId is a real project ID or a project type string
       // If it's a project type, we set projectId to null and prepend type to message
       const isExistingProject = projects.some(
-        (p) => p.id === requestData.projectId
+        (p) => p.id === requestData.projectId,
       );
 
       let estimatedAmount = 0;
@@ -366,7 +367,7 @@ export const ClientBilling = ({ user }) => {
           editingInvoiceId
             ? "Invoice request updated successfully!"
             : "Invoice request submitted successfully!",
-          "success"
+          "success",
         );
         setIsModalOpen(false);
         setEditingInvoiceId(null);
@@ -386,8 +387,8 @@ export const ClientBilling = ({ user }) => {
                     description: payload.message,
                     projectId: payload.projectId || inv.projectId,
                   }
-                : inv
-            )
+                : inv,
+            ),
           );
         } else {
           // Add new for create
@@ -480,7 +481,7 @@ export const ClientBilling = ({ user }) => {
       if (res.ok) {
         // Update local state
         const updatedInvoices = invoices.map((inv) =>
-          inv.id === paymentInvoice.id ? { ...inv, status: "Paid" } : inv
+          inv.id === paymentInvoice.id ? { ...inv, status: "Paid" } : inv,
         );
         setInvoices(updatedInvoices);
 
@@ -527,8 +528,8 @@ export const ClientBilling = ({ user }) => {
               socketStatus === "connected"
                 ? "bg-green-500"
                 : socketStatus === "error"
-                ? "bg-red-500"
-                : "bg-yellow-500"
+                  ? "bg-red-500"
+                  : "bg-yellow-500"
             }`}
             title={`Live Sync: ${socketStatus}`}
           />
@@ -826,8 +827,8 @@ export const ClientBilling = ({ user }) => {
                   {method === "momo"
                     ? "Mobile Money"
                     : method === "bank"
-                    ? "Bank Transfer"
-                    : "Credit Card"}
+                      ? "Bank Transfer"
+                      : "Credit Card"}
                 </button>
               ))}
             </div>
@@ -1013,7 +1014,7 @@ export const ClientBilling = ({ user }) => {
                 </div>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                    invoice.status
+                    invoice.status,
                   )}`}
                 >
                   {invoice.status}
@@ -1142,13 +1143,13 @@ export const ClientBilling = ({ user }) => {
                     <td className="px-6 py-4 font-mono font-medium text-green-600 dark:text-green-400">
                       GH₵{" "}
                       {(invoice.status === "Paid" ? invoice.amount : 0).toFixed(
-                        2
+                        2,
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          invoice.status
+                          invoice.status,
                         )}`}
                       >
                         {invoice.status}
