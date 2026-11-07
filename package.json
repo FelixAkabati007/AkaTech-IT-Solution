@@ -24,6 +24,7 @@
     "@splinetool/runtime": "^1.12.23",
     "@tailwindcss/postcss": "^4.1.18",
     "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^2.1.0",
     "autoprefixer": "^10.4.23",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",

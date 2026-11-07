@@ -19,6 +19,7 @@ import AdinkraBackground from "@components/ui/AdinkraBackground";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { useTheme } from "./hooks/useTheme";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Lazy load pages
 const Dashboard = lazy(() =>
@@ -218,6 +219,7 @@ export default function App() {
     >
       <div className={`min-h-screen ${mode} transition-colors duration-300`}>
         <Analytics />
+        <SpeedInsights />
         <ToastProvider>
           <SyncStatusProvider>
             <div className="bg-white dark:bg-akatech-black text-gray-900 dark:text-white min-h-screen transition-colors duration-300">
