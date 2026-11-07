@@ -153,29 +153,39 @@ export default function App() {
   };
 
   const handleGoogleLogin = (tokenResponse) => {
-    fetch("/api/signup/verify-google", {
+    const token =
+      tokenResponse?.access_token ||
+      tokenResponse?.credential ||
+      tokenResponse?.id_token ||
+      (typeof tokenResponse === "string" ? tokenResponse : null);
+
+    if (!token) {
+      return Promise.reject(new Error("No valid token received from Google"));
+    }
+
+    return fetch("/api/signup/verify-google", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ token: tokenResponse.access_token }),
+      body: JSON.stringify({ token }),
       credentials: "include",
     })
       .then(async (res) => {
-        if (res.ok) return res.json();
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          errData.error || errData.details || "Google auth failed"
-        );
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(
+            errData.error || errData.details || "Google auth verification failed"
+          );
+        }
+        return res.json();
       })
       .then((data) => {
         // Token is now in HTTP-only cookie
         setUser(data.user);
         setAuthModalOpen(false);
         setView("dashboard");
-      })
-      .catch((err) => {
-        console.error("Google Login Error:", err);
+        return data.user;
       });
   };
 

@@ -19,13 +19,24 @@ export const AuthModal = ({
   const modalRef = useRef(null);
 
   const googleLogin = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      if (onGoogleLogin) {
-        onGoogleLogin(tokenResponse);
-        addToast("Signed in with Google", "success");
+    onSuccess: async (tokenResponse) => {
+      try {
+        if (onGoogleLogin) {
+          const loggedInUser = await onGoogleLogin(tokenResponse);
+          addToast(
+            `Welcome back, ${loggedInUser?.name || loggedInUser?.email || "User"}!`,
+            "success"
+          );
+        }
+      } catch (err) {
+        console.error("Google sign-in error:", err);
+        addToast(err.message || "Google sign-in failed", "error");
       }
     },
-    onError: () => addToast("Google Sign In Failed", "error"),
+    onError: (err) => {
+      console.error("Google popup error:", err);
+      addToast("Google Sign-In was cancelled or failed", "error");
+    },
   });
 
   useEffect(() => {
