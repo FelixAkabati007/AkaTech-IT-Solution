@@ -3,6 +3,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Icons } from "@components/ui/Icons";
 import { useOnlineStatus } from "@hooks/useOnlineStatus";
 
+// Isolated error boundary for Spline 3D canvas
+class SplineErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.warn("Spline 3D avatar load failed, falling back to 2D avatar:", error);
+    if (this.props.onError) {
+      this.props.onError();
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 // Lazy load Spline to avoid heavy initial load
 const Spline = React.lazy(() => import("@splinetool/react-spline"));
 
@@ -14,7 +40,23 @@ export const FloatingAssistant = () => {
   const online = useOnlineStatus();
 
   React.useEffect(() => {
-    const checkMobile = () => {
+    const checkEnvironment = () => {
+      // Check WebGL support
+      try {
+        const canvas = document.createElement("canvas");
+        const hasWebGL = !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+        );
+        if (!hasWebGL) {
+          setHasError(true);
+          return;
+        }
+      } catch {
+        setHasError(true);
+        return;
+      }
+
       const userAgent =
         navigator.userAgent || navigator.vendor || window.opera || "";
       // Strict mobile check to avoid false positives on desktops
@@ -27,15 +69,15 @@ export const FloatingAssistant = () => {
       const newIsMobile = isMobileUA || isSmallScreen;
       setIsMobile(newIsMobile);
 
-      // Reset error/loaded state when switching to desktop to allow retry
-      if (!newIsMobile) {
+      // Reset error state when switching to desktop to allow retry if WebGL is present
+      if (!newIsMobile && !hasError) {
         setHasError(false);
       }
     };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    checkEnvironment();
+    window.addEventListener("resize", checkEnvironment);
+    return () => window.removeEventListener("resize", checkEnvironment);
   }, []);
 
   const handleClick = () => {
@@ -44,6 +86,12 @@ export const FloatingAssistant = () => {
       "_blank"
     );
   };
+
+  const fallbackBotIcon = (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-akatech-gold/10 to-akatech-gold/30 dark:from-akatech-gold/20 dark:to-akatech-gold/5 text-akatech-gold">
+      <Icons.Bot size={32} />
+    </div>
+  );
 
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex items-center justify-center">
@@ -92,11 +140,9 @@ export const FloatingAssistant = () => {
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-akatech-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-        {/* Spline Viewer */}
+        {/* Spline Viewer with Error Boundary */}
         {hasError || isMobile || !online ? (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-akatech-gold/10 to-akatech-gold/30 dark:from-akatech-gold/20 dark:to-akatech-gold/5 text-akatech-gold">
-            <Icons.Bot size={32} />
-          </div>
+          fallbackBotIcon
         ) : (
           <div className="relative w-full h-full">
             {/* Show Icon while loading for seamless transition */}
@@ -105,16 +151,20 @@ export const FloatingAssistant = () => {
                 <Icons.Bot size={32} />
               </div>
             )}
-            <Suspense fallback={null}>
-              <Spline
-                scene="https://prod.spline.design/gg8wAlCUGNYmIMlR/scene.splinecode"
-                className={`w-full h-full transform scale-125 translate-y-2 transition-opacity duration-500 ${
-                  isLoaded ? "opacity-100" : "opacity-0"
-                }`}
-                onLoad={() => setIsLoaded(true)}
-                onError={() => setHasError(true)}
-              />
-            </Suspense>
+            <SplineErrorBoundary
+              fallback={fallbackBotIcon}
+              onError={() => setHasError(true)}
+            >
+              <Suspense fallback={null}>
+                <Spline
+                  scene="https://prod.spline.design/gg8wAlCUGNYmIMlR/scene.splinecode"
+                  className={`w-full h-full transform scale-125 translate-y-2 transition-opacity duration-500 ${
+                    isLoaded ? "opacity-100" : "opacity-0"
+                  }`}
+                  onLoad={() => setIsLoaded(true)}
+                />
+              </Suspense>
+            </SplineErrorBoundary>
           </div>
         )}
       </motion.button>

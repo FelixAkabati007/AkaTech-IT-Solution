@@ -16,6 +16,7 @@ import { AuthModal } from "@components/ui/AuthModal";
 import { FloatingAssistant } from "@components/ui/FloatingAssistant";
 import { CookieConsent } from "@components/ui/CookieConsent";
 import AdinkraBackground from "@components/ui/AdinkraBackground";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { useTheme } from "./hooks/useTheme";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -72,6 +73,7 @@ export default function App() {
   const [view, setView] = useState("landing"); // landing | dashboard | portfolio | plan-completion | careers | privacy | cookie | terms
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const { mode, cycleTheme } = useTheme();
 
@@ -87,8 +89,19 @@ export default function App() {
       .then((data) => setUser(data.user))
       .catch(() => {
         setUser(null);
+      })
+      .finally(() => {
+        setIsLoadingUser(false);
       });
   }, []);
+
+  // Prevent dead-end view traps if not authenticated
+  useEffect(() => {
+    if (view === "dashboard" && !user && !isLoadingUser) {
+      setView("landing");
+      setAuthModalOpen(true);
+    }
+  }, [view, user, isLoadingUser]);
 
   const handleLogin = (email, password) => {
     return fetch("/api/login", {
@@ -182,9 +195,13 @@ export default function App() {
     }
   }, [googleClientId]);
 
+  const activeGoogleClientId =
+    googleClientId ||
+    "336631405778-sngll5qo5a8mo57ifn9ru8ol1m7r7cgs.apps.googleusercontent.com";
+
   return (
     <GoogleOAuthProvider
-      clientId={googleClientId}
+      clientId={activeGoogleClientId}
       onScriptLoadError={() =>
         console.error("Google Sign-In script failed to load")
       }
@@ -217,68 +234,81 @@ export default function App() {
                   onViewChange={handleNavigate}
                 />
               )}
+              {view === "dashboard" && isLoadingUser && (
+                <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-akatech-dark">
+                  <div className="w-12 h-12 border-4 border-akatech-gold border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium tracking-wide">
+                    Authenticating session...
+                  </p>
+                </div>
+              )}
+
               {view === "landing" && (
-                <>
+                <ErrorBoundary>
                   <Hero />
                   <Services />
                   <Recommendations />
                   <Pricing onSelectPlan={handleSelectPlan} />
                   <Contact />
-                </>
+                </ErrorBoundary>
               )}
-              <Suspense
-                fallback={
-                  <div className="min-h-screen flex items-center justify-center bg-white dark:bg-akatech-dark">
-                    <div className="w-12 h-12 border-4 border-akatech-gold border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                }
-              >
-                {view === "dashboard" && user && (
-                  <Dashboard
-                    user={user}
-                    onLogout={handleLogout}
-                    onUserUpdate={handleUserUpdate}
-                  />
-                )}
+              <ErrorBoundary>
+                <Suspense
+                  fallback={
+                    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-akatech-dark">
+                      <div className="w-12 h-12 border-4 border-akatech-gold border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  }
+                >
+                  {view === "dashboard" && user && (
+                    <Dashboard
+                      user={user}
+                      onLogout={handleLogout}
+                      onUserUpdate={handleUserUpdate}
+                    />
+                  )}
 
-                {view === "about" && <About />}
-                {view === "components" && <ComponentsPage />}
-                {view === "docs" && <DocsPage />}
-                {view === "themes" && (
-                  <ThemesPage mode={mode} cycleTheme={cycleTheme} />
-                )}
-                {view === "performance" && <PerformancePage />}
+                  {view === "about" && <About />}
+                  {view === "components" && <ComponentsPage />}
+                  {view === "docs" && <DocsPage />}
+                  {view === "themes" && (
+                    <ThemesPage mode={mode} cycleTheme={cycleTheme} />
+                  )}
+                  {view === "performance" && <PerformancePage />}
 
-                {view === "careers" && (
-                  <Careers onHome={() => handleNavigate("landing")} />
-                )}
+                  {view === "careers" && (
+                    <Careers onHome={() => handleNavigate("landing")} />
+                  )}
 
-                {view === "privacy" && (
-                  <PrivacyPolicy onHome={() => handleNavigate("landing")} />
-                )}
+                  {view === "privacy" && (
+                    <PrivacyPolicy onHome={() => handleNavigate("landing")} />
+                  )}
 
-                {view === "cookie" && (
-                  <CookiePolicy onHome={() => handleNavigate("landing")} />
-                )}
+                  {view === "cookie" && (
+                    <CookiePolicy onHome={() => handleNavigate("landing")} />
+                  )}
 
-                {view === "terms" && (
-                  <TermsOfService onHome={() => handleNavigate("landing")} />
-                )}
+                  {view === "terms" && (
+                    <TermsOfService onHome={() => handleNavigate("landing")} />
+                  )}
 
-                {view === "plan-completion" && selectedPlan && (
-                  <PlanCompletion
-                    plan={selectedPlan}
-                    onBack={() => handleNavigate("landing")}
-                    onNavigate={handleNavigate}
-                    onUserUpdate={handleUserUpdate}
-                  />
-                )}
-              </Suspense>
+                  {view === "plan-completion" && selectedPlan && (
+                    <PlanCompletion
+                      plan={selectedPlan}
+                      onBack={() => handleNavigate("landing")}
+                      onNavigate={handleNavigate}
+                      onUserUpdate={handleUserUpdate}
+                    />
+                  )}
+                </Suspense>
+              </ErrorBoundary>
               {view !== "dashboard" && <Footer onNavigate={handleNavigate} />}
               {view === "landing" && (
-                <Suspense fallback={null}>
-                  <FloatingAssistant />
-                </Suspense>
+                <ErrorBoundary fallback={null}>
+                  <Suspense fallback={null}>
+                    <FloatingAssistant />
+                  </Suspense>
+                </ErrorBoundary>
               )}
               <CookieConsent />
               <AuthModal
