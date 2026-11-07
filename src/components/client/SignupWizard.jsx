@@ -554,7 +554,7 @@ export const SignupWizard = ({ initialPlan, onBack, onComplete }) => {
 
       if (!res.ok)
         throw new Error(
-          data.error || data.details || data.message || "Verification failed"
+          data.details || data.error || data.message || "Verification failed"
         );
 
       if (action === "google") {
@@ -562,6 +562,14 @@ export const SignupWizard = ({ initialPlan, onBack, onComplete }) => {
         if (data.signupToken) setSignupToken(data.signupToken);
         if (data.email) {
           setFormData((prev) => ({ ...prev, email: data.email }));
+        }
+
+        // If user signed in from Login mode, complete immediately and route to dashboard
+        if (payload?.mode === "login" && data.user) {
+          if (onComplete) {
+            onComplete(data.user);
+            return;
+          }
         }
 
         // Try to fetch existing progress

@@ -403,18 +403,59 @@ app.post("/api/signup/verify-google", async (req, res) => {
     // Check if it's a JWT (ID Token) or Access Token
     if (token.startsWith("ey")) {
       // ID Token
-      const ticket = await googleClient.verifyIdToken({
-        idToken: token,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      googleUser = {
-        sub: payload.sub,
-        email: payload.email,
-        name: payload.name,
-        picture: payload.picture,
-        email_verified: payload.email_verified,
-      };
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        googleUser = {
+          sub: payload.sub,
+          email: payload.email,
+          name: payload.name,
+          picture: payload.picture,
+          email_verified: payload.email_verified,
+        };
+      } catch (verifyErr) {
+        console.warn(
+          "Local verifyIdToken failed (likely system clock skew/timezone difference), validating via Google tokeninfo API:",
+          verifyErr.message
+        );
+        // Fallback to Google's official online validation endpoint (evaluated using Google server time)
+        const tokenInfoRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`
+        );
+        if (!tokenInfoRes.ok) {
+          const errData = await tokenInfoRes.json().catch(() => ({}));
+          throw new Error(
+            errData.error_description || errData.error || verifyErr.message
+          );
+        }
+        const payload = await tokenInfoRes.json();
+        const expectedClientId = process.env.GOOGLE_CLIENT_ID;
+        if (
+          expectedClientId &&
+          payload.aud !== expectedClientId &&
+          payload.azp !== expectedClientId
+        ) {
+          throw new Error("Token audience mismatch");
+        }
+        if (
+          payload.iss !== "https://accounts.google.com" &&
+          payload.iss !== "accounts.google.com"
+        ) {
+          throw new Error("Invalid token issuer");
+        }
+        googleUser = {
+          sub: payload.sub,
+          email: payload.email,
+          name: payload.name,
+          picture: payload.picture,
+          email_verified:
+            payload.email_verified === true ||
+            payload.email_verified === "true",
+        };
+      }
     } else {
       // Access Token
       const userInfoRes = await fetch(
