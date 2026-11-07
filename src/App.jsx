@@ -222,7 +222,27 @@ export default function App() {
         <SpeedInsights />
         <ToastProvider>
           <SyncStatusProvider>
-            <div className="bg-white dark:bg-akatech-black text-gray-900 dark:text-white min-h-screen transition-colors duration-300">
+            <div
+              className={`text-gray-900 dark:text-white min-h-screen transition-colors duration-300 relative ${
+                view === "landing"
+                  ? "bg-neutral-950"
+                  : "bg-white dark:bg-akatech-black"
+              }`}
+            >
+              {view === "landing" && (
+                <div
+                  className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-neutral-950"
+                  aria-hidden="true"
+                >
+                  <img
+                    src="/akatech-hq-bg.jpg"
+                    alt="AkaTech IT Solutions Headquarters"
+                    className="w-full h-full object-cover object-center opacity-70 filter brightness-[0.70] contrast-[1.05]"
+                  />
+                  {/* Dark overlay for contrast and legibility */}
+                  <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[0.5px]"></div>
+                </div>
+              )}
               {/* <AdinkraBackground /> */}
               <img
                 src="/background-accent.jpg"

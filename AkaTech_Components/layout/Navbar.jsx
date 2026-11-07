@@ -93,7 +93,7 @@ export const Navbar = ({
               className={`text-lg md:text-xl font-serif font-bold tracking-wide leading-none transition-colors duration-500 group-hover:text-akatech-gold whitespace-nowrap ${
                 isScrolled
                   ? "text-gray-900 dark:text-white"
-                  : "text-gray-900 dark:text-gray-900"
+                  : "text-gray-900 dark:text-white"
               }`}
             >
               AKATECH

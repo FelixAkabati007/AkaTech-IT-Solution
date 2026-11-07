@@ -5,7 +5,7 @@ import { Icons } from "@components/ui/Icons";
 export const Pricing = ({ onSelectPlan }) => (
   <section
     id="pricing"
-    className="py-16 md:py-24 bg-white dark:bg-akatech-dark border-t border-gray-200 dark:border-white/5 transition-colors duration-500"
+    className="py-16 md:py-24 bg-white/70 dark:bg-black/60 backdrop-blur-md border-t border-gray-200/50 dark:border-white/5 transition-colors duration-500"
   >
     <div className="container mx-auto px-4">
       <div className="text-center mb-12 md:mb-20">
@@ -22,10 +22,10 @@ export const Pricing = ({ onSelectPlan }) => (
         {PRICING_PACKAGES.map((pkg, idx) => (
           <div
             key={idx}
-            className={`relative p-8 md:p-10 flex flex-col transition-all duration-500 ${
+            className={`relative p-8 md:p-10 flex flex-col transition-all duration-500 rounded-2xl backdrop-blur-md ${
               pkg.recommended
-                ? "bg-gradient-to-b from-gray-100 dark:from-[#1a1a1a] to-white dark:to-black border border-akatech-gold shadow-[0_0_30px_rgba(197,160,89,0.1)]"
-                : "bg-gray-50 dark:bg-akatech-card border border-gray-200 dark:border-white/5 hover:border-akatech-gold/30 dark:hover:border-white/10"
+                ? "bg-gradient-to-b from-white/95 dark:from-[#1a1a1a]/90 to-white/85 dark:to-black/90 border border-akatech-gold shadow-[0_0_30px_rgba(197,160,89,0.15)]"
+                : "bg-white/85 dark:bg-akatech-card/85 border border-gray-200/70 dark:border-white/5 hover:border-akatech-gold/30 dark:hover:border-white/10 shadow-lg dark:shadow-none"
             }`}
           >
             {pkg.recommended && (

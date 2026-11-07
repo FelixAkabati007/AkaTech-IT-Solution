@@ -3,7 +3,7 @@ import { Logo } from "../ui/Logo";
 import { Icons } from "../ui/Icons";
 
 export const Footer = ({ onNavigate }) => (
-  <footer className="bg-gray-100 dark:bg-[#050505] py-16 border-t border-gray-200 dark:border-white/5 text-center md:text-left transition-colors duration-500">
+  <footer className="bg-gray-100/80 dark:bg-[#050505]/85 backdrop-blur-md py-16 border-t border-gray-200 dark:border-white/5 text-center md:text-left transition-colors duration-500">
     <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-5 gap-8">
       <div className="col-span-2 md:col-span-1">
         <div className="flex items-center gap-2 mb-6 justify-center md:justify-start">

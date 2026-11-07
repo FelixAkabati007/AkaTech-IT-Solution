@@ -78,7 +78,7 @@ export const Contact = () => {
   return (
     <section
       id="contact"
-      className="py-16 md:py-24 bg-white dark:bg-black relative overflow-hidden transition-colors duration-500"
+      className="py-16 md:py-24 bg-white/75 dark:bg-black/70 backdrop-blur-md relative overflow-hidden transition-colors duration-500"
     >
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-gray-50 dark:from-[#1a1a1a] to-transparent"></div>
 

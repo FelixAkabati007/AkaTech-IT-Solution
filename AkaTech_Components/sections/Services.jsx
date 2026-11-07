@@ -3,7 +3,7 @@ import { SERVICES } from "@lib/data";
 export const Services = () => (
   <section
     id="services"
-    className="py-16 md:py-24 bg-gray-50 dark:bg-akatech-card relative transition-colors duration-500"
+    className="py-16 md:py-24 bg-white/75 dark:bg-black/60 backdrop-blur-md relative transition-colors duration-500"
   >
     <div className="container mx-auto">
       <div className="text-center mb-12 md:mb-20">
@@ -20,7 +20,7 @@ export const Services = () => (
         {SERVICES.map((service, idx) => (
           <div
             key={idx}
-            className="group p-6 md:p-8 border border-gray-200 dark:border-white/5 bg-white dark:bg-akatech-dark hover:border-akatech-gold/40 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden shadow-sm dark:shadow-none rounded-xl"
+            className="group p-6 md:p-8 border border-gray-200/80 dark:border-white/10 bg-white/85 dark:bg-akatech-dark/85 backdrop-blur-md hover:border-akatech-gold/40 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden shadow-lg dark:shadow-none rounded-xl"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gold-gradient transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
             <div className="mb-6 text-akatech-gold group-hover:text-black dark:group-hover:text-white transition-colors duration-300">
